@@ -1,0 +1,208 @@
+# Kabukichō Gate: 歌舞伎町一番街 at night, in the rain.
+
+[scene]
+name = "Kabukichō Gate"
+description = "The red gate of Kabukichō Ichiban-gai at night, in the rain. Signs flicker when you type, the rain gets heavier when the CPU works, the gate flashes red or green when a build fails or passes, billboards pulse to music, and the street follows the clock."
+author = "ukiyo"
+license = "CC-BY-SA-4.0"
+credits = [
+  "Photo: Basile Morin, \"Kabukicho red gate and colorful neon street signs at night, Shinjuku, Tokyo, Japan\", CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Kabukicho_red_gate_and_colorful_neon_street_signs_at_night,_Shinjuku,_Tokyo,_Japan.jpg",
+  "Depth, masks and poster derived from it (tools/), same licence.",
+]
+poster = "poster.jpg"
+shader = "scene.wgsl"
+
+[view]
+frame = "base"
+focus = [0.5, 0.40]
+overscan = 1.04
+
+[render]
+fps = 30
+scale = 0.75
+animated = true
+bloom = { threshold = 0.95, knee = 0.4, levels = 7 }
+
+[textures]
+base = { path = "base.jpg", color = "srgb" }
+depth = "depth.png"
+emissive = "emissive.png"
+regions = "regions.png"
+
+# ---------------------------------------------------------------------------
+# Tunables. Each shows up in `ukiyo config schema` and can be overridden in
+# the user config under [scenes.kabukicho-gate].
+
+[params.rain]
+type = "float"
+label = "Rain"
+group = "Weather"
+help = "How hard it rains when the machine is idle."
+default = 0.45
+min = 0.0
+max = 1.0
+
+[params.rain_cpu]
+type = "float"
+label = "Rain from CPU load"
+group = "Weather"
+help = "How much heavier the rain gets while the CPU works."
+default = 0.55
+min = 0.0
+max = 1.0
+
+[params.wind]
+type = "float"
+label = "Wind"
+group = "Weather"
+default = 0.18
+min = -0.6
+max = 0.6
+
+[params.haze]
+type = "float"
+label = "Haze"
+group = "Weather"
+help = "Wet air down the street, lit by the signs."
+default = 0.5
+min = 0.0
+max = 1.0
+
+[params.lens]
+type = "float"
+label = "Drops on the lens"
+group = "Weather"
+default = 0.3
+min = 0.0
+max = 1.0
+
+[params.flicker_base]
+type = "float"
+label = "Flicker at rest"
+group = "Neon"
+default = 0.08
+min = 0.0
+max = 1.0
+
+[params.flicker_typing]
+type = "float"
+label = "Flicker from typing"
+group = "Neon"
+default = 1.0
+min = 0.0
+max = 2.0
+
+[params.chase]
+type = "float"
+label = "Gate bulb chase"
+group = "Neon"
+default = 0.3
+min = 0.0
+max = 1.0
+
+[params.music]
+type = "float"
+label = "Billboard pulse"
+group = "Neon"
+help = "How hard the billboards pulse to music."
+default = 1.0
+min = 0.0
+max = 2.0
+
+[params.closing]
+type = "float"
+label = "Signs that close at night"
+group = "Neon"
+help = "Share of the signs that go dark towards the dead of night."
+default = 0.4
+min = 0.0
+max = 1.0
+
+[params.fail_color]
+type = "color"
+label = "Build failed"
+group = "Builds"
+default = "#ff1028"
+
+[params.pass_color]
+type = "color"
+label = "Build passed"
+group = "Builds"
+default = "#18ff7a"
+
+[params.parallax]
+type = "float"
+label = "Parallax depth"
+group = "Camera"
+default = 1.0
+min = 0.0
+max = 2.0
+
+[params.drift]
+type = "float"
+label = "Workspace drift"
+group = "Camera"
+default = 1.0
+min = 0.0
+max = 2.0
+
+[params.exposure]
+type = "float"
+label = "Exposure"
+group = "Look"
+default = 1.0
+min = 0.4
+max = 1.6
+
+[params.saturation]
+type = "float"
+label = "Saturation"
+group = "Look"
+default = 1.0
+min = 0.0
+max = 1.5
+
+[params.bloom]
+type = "float"
+label = "Bloom"
+group = "Look"
+default = 1.0
+min = 0.0
+max = 2.0
+
+[params.grain]
+type = "float"
+label = "Film grain"
+group = "Look"
+default = 0.35
+min = 0.0
+max = 1.0
+
+[params.vignette]
+type = "float"
+label = "Vignette"
+group = "Look"
+default = 0.5
+min = 0.0
+max = 1.0
+
+# ---------------------------------------------------------------------------
+# Signals -> uniforms. Signals arrive already gained and smoothed per the
+# user's config; this is the scene's own shaping on top.
+
+[bindings]
+flicker = { expr = "param.flicker_base + typing.rate * param.flicker_typing", attack = 0.05, release = 0.6 }
+buzz = { expr = "cpu.load", smooth = 0.5 }
+rain_amount = { expr = "clamp(param.rain + cpu.load * param.rain_cpu, 0, 1.2)", attack = 1.2, release = 3.0 }
+cam_x = "cursor.x * param.parallax + workspace.pan * param.drift"
+cam_y = "cursor.y * param.parallax"
+failed = "pulse.build_failed"
+failed_age = "pulse.build_failed.age"
+passed = "pulse.build_passed"
+passed_age = "pulse.build_passed.age"
+bass = { expr = "audio.bass * param.music", attack = 0.02, release = 0.12 }
+beat = { expr = "audio.beat * param.music", attack = 0.01, release = 0.25 }
+level = { expr = "audio.level * param.music", smooth = 0.3 }
+dusk = "clock.dusk"
+night = "clock.night"
+day = "clock.day"

@@ -1,0 +1,42 @@
+[package]
+name = "ukiyo"
+description = "Reactive live wallpapers for Wayland: the daemon and its CLI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "ukiyo"
+path = "src/main.rs"
+
+[dependencies]
+ukiyo-core.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+log.workspace = true
+env_logger.workspace = true
+image.workspace = true
+clap = { version = "4.5", features = ["derive"] }
+rustfft = "6"
+libc = "0.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+wgpu.workspace = true
+pollster.workspace = true
+smithay-client-toolkit = { version = "0.21", default-features = false, features = ["calloop", "system"] }
+wayland-client = { version = "0.31", features = ["system"] }
+wayland-backend = { version = "0.3", features = ["client_system"] }
+wayland-protocols = { version = "0.32", features = ["client", "staging"] }
+calloop = { version = "0.14", features = ["signals"] }
+raw-window-handle = "0.6"
+
+[lints]
+workspace = true

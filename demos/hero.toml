@@ -1,0 +1,18 @@
+# The README's loop: rain, typing, a failed build.
+duration = 6
+fps = 15
+size = [800, 500]
+hour = 22
+
+[[at]]
+t = 0
+set = { "cpu.load" = 0.5, "typing.rate" = 0.8, "cursor.x" = -0.4, "cursor.y" = 0.0 }
+
+[[at]]
+t = 0
+ramp = 6
+set = { "cursor.x" = 0.5 }
+
+[[at]]
+t = 2.6
+pulse = ["build_failed"]

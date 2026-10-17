@@ -1,0 +1,44 @@
+[workspace]
+resolver = "3"
+members = ["crates/ukiyo-core", "crates/ukiyo", "crates/ukiyo-preview", "crates/ukiyo-activityd"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/SuplenC/ukiyo"
+authors = ["Kuba"]
+description = "Reactive live wallpapers for Wayland"
+keywords = ["wayland", "wallpaper", "wgpu", "shader", "hyprland"]
+categories = ["graphics", "rendering", "multimedia"]
+# The crates.io names (`ukiyo`, ...) are pending; nothing is published yet.
+publish = false
+
+[workspace.dependencies]
+ukiyo-core = { path = "crates/ukiyo-core", version = "0.1.0" }
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = { version = "1", features = ["preserve_order"] }
+wgpu = "30"
+pollster = "0.4"
+bytemuck = { version = "1", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+log = "0.4"
+env_logger = "0.11"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+
+[profile.dev.package."*"]
+opt-level = 2

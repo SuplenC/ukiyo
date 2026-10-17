@@ -1,0 +1,53 @@
+[Unit]
+Description=ukiyo typing-rate helper (aggregate key presses per second, never key codes)
+Documentation=https://github.com/SuplenC/ukiyo/blob/main/docs/SECURITY.md
+Requires=ukiyo-activityd.socket
+After=ukiyo-activityd.socket systemd-logind.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ukiyo-activityd
+Restart=on-failure
+
+# Its own throwaway user; the input group is the only extra privilege.
+DynamicUser=yes
+SupplementaryGroups=input
+
+# Only keyboards, read-only.
+DevicePolicy=closed
+DeviceAllow=char-input r
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+PrivateUsers=no
+PrivateIPC=yes
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+UMask=0077
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+IPAddressDeny=any
+MemoryMax=16M
+TasksMax=4
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+target/
+assets-src/
+tools/.venv/
+__pycache__/
+*.pyc
+.DS_Store
+# render outputs
+/out/
+*.mp4
+*.webm

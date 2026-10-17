@@ -1,0 +1,166 @@
+# Mask configuration for the kabukicho-gate scene, read by tools/masks.py
+# (and the [sky] / [depth] sections by tools/depth.py).
+#
+# Coordinates are normalised to the image: x, y in [0, 1], origin top-left,
+# so they hold for base.jpg (3840 px) and the 1920 px derived maps alike.
+# A shape is a rect [x0, y0, x1, y1] or a polygon [[x, y], [x, y], ...].
+# Pixel-valued knobs (*_px) are in pixels of the 1920 px output.
+
+# ---------------------------------------------------------------------------
+# Sky: dark pixels inside these polygons. Feeds regions.R and forces depth to
+# the far plane (the model already gets it nearly right; this pins it to 0).
+[sky]
+polygons = [
+  # strip above the arch, between the yellow sign (left) and the right building
+  [[0.236, 0.0], [0.712, 0.0], [0.712, 0.10], [0.236, 0.10]],
+  # the gap down the middle of the street, under the arch
+  [[0.405, 0.383], [0.527, 0.383], [0.527, 0.47], [0.512, 0.47],
+   [0.512, 0.555], [0.480, 0.555], [0.480, 0.588],
+   [0.442, 0.588], [0.442, 0.700], [0.405, 0.700]],
+]
+luma_lo = 0.14     # fully sky below this (max(luma, 0.6*maxRGB))
+luma_hi = 0.22     # not sky above this
+min_area_px = 400
+feather_px = 2.0
+
+[depth]
+sky_value = 0.0    # depth written under the sky mask (0 = farthest)
+
+# The model puts the gate's grey pillar bases (below the red pillars) well
+# behind the red pillars they are part of. Raise them to at least the median
+# depth of the red pillar right above.
+[[depth.lift]]
+name = "left pillar base"
+shape = [0.080, 0.622, 0.134, 1.0]
+ref = [0.085, 0.50, 0.125, 0.60]
+feather_px = 2.0
+[[depth.lift]]
+name = "right pillar base"
+shape = [0.853, 0.622, 0.912, 1.0]
+ref = [0.860, 0.50, 0.900, 0.60]
+feather_px = 2.0
+
+# ---------------------------------------------------------------------------
+# Gate: the red bulb-studded arch, its pillars and the lightbox.
+[gate]
+# Generous envelope around the red ribbons; red pixels inside it are the arch.
+# Kept clear of the red signs below the arch.
+envelope = [
+  [[0.07, 0.0], [0.93, 0.0], [0.93, 0.632], [0.845, 0.632], [0.845, 0.385],
+   [0.155, 0.385], [0.155, 0.632], [0.07, 0.632]],
+]
+# Arch panel colour (OpenCV HSV_FULL: hue 0..255, s and v 0..1)
+hue_min = 222      # red/magenta wraps: hue >= hue_min OR hue <= hue_max
+hue_max = 6
+sat_min = 0.55
+val_min = 0.35
+close_px = 9       # closing to swallow the bulbs/holes into the panel
+hole_max_area_px = 4000  # bulbs and glare patches left as holes in the panel get filled
+# Red things inside the envelope that are not the arch panel
+panel_exclude = [
+  [0.285, 0.143, 0.700, 0.283],   # lightbox (red lettering and border)
+]
+# Solid parts that are not red: lightbox (frame incl.), the two pillar bases.
+solid = [
+  [0.285, 0.143, 0.700, 0.283],   # 歌舞伎町一番街 lightbox with its frame
+  [0.080, 0.625, 0.134, 1.0],     # left pillar base (劇場通り)
+  [0.853, 0.625, 0.912, 1.0],     # right pillar base (劇場)
+  [0.414, 0.0, 0.570, 0.013],     # frame on top of the arch
+  [0.440, 0.017, 0.542, 0.053],   # lit housing box on top of the arch
+]
+# Bulbs: bright, whitish spots on the panel.
+bulb_val_min = 0.80
+bulb_sat_max = 0.62
+bulb_tophat_px = 13   # structuring element for the white top-hat
+bulb_tophat_min = 0.10
+bulb_min_area_px = 6
+bulb_max_area_px = 260
+bulb_max_extent_px = 18   # bbox side limit
+bulb_min_fill = 0.45      # area / bbox area (rejects glare streaks)
+bulb_soft_px = 0.8
+panel_value = 0.35
+
+# ---------------------------------------------------------------------------
+# Neon signs (emissive.G): lit, emissive pixels outside gate/sky/people.
+[signs]
+# lit = smoothstep(lit_lo, lit_hi, score), score = max(maxRGB*sat_w_mix, luma)
+lit_lo = 0.45
+lit_hi = 0.90
+sat_weight = 0.50       # saturated colours count as more emissive
+component_thr = 0.2     # lit level that defines a sign component (and its id)
+min_area_px = 30        # components smaller than this are dropped
+blur_px = 1.2
+# Areas that are bright but are not sign faces (lit facades, glass, etc).
+exclude = [
+  # warm-lit windows of the building on the right, above and behind the arch
+  # (incl. the lantern and lit window strips right of the お好み焼本陣 sign)
+  [[0.700, 0.0], [0.910, 0.0], [0.910, 0.62], [0.853, 0.62], [0.853, 0.86],
+   [0.742, 0.86], [0.742, 0.36], [0.700, 0.36]],
+  # lit window strips on the brick facade, left of the yellow sign
+  [0.130, 0.0, 0.178, 0.50],
+  # steel underside of the arch lit by its own downlights
+  [0.320, 0.360, 0.700, 0.392],
+]
+
+# Billboards (emissive.B): big signs that react to music. Rect/polygon ∩ lit.
+[[billboard]]
+name = "gate lightbox 歌舞伎町一番街"
+shape = [0.290, 0.150, 0.695, 0.276]
+[[billboard]]
+name = "お好み焼本陣"
+shape = [0.672, 0.555, 0.740, 0.850]
+[[billboard]]
+name = "バンタイ (Ban-Thai)"
+shape = [0.233, 0.375, 0.283, 0.605]
+[[billboard]]
+name = "まぐろ商店"
+shape = [0.285, 0.400, 0.320, 0.560]
+[[billboard]]
+name = "焼鳥釜めし"
+shape = [0.632, 0.565, 0.676, 0.760]
+[[billboard]]
+name = "ステップ"
+shape = [0.580, 0.700, 0.634, 0.810]
+[[billboard]]
+name = "劇場通り (left pillar)"
+shape = [0.086, 0.686, 0.121, 0.849]
+[[billboard]]
+name = "劇場 (right pillar)"
+shape = [0.876, 0.688, 0.908, 0.849]
+[[billboard]]
+name = "薄利多売半兵衛"
+shape = [0.285, 0.722, 0.320, 0.884]
+[[billboard]]
+name = "東南荘"
+shape = [0.633, 0.437, 0.683, 0.550]
+
+# Per-sign id (emissive.A)
+[sign_id]
+seed = 1337
+seed_thr = 0.6         # sign cores: lit above this ...
+seed_erode_px = 5      # ... eroded by this, so adjacent signs don't touch
+seed_min_area_px = 12
+dilate_px = 2          # grow ids a little so they cover the blurred G/B halo
+
+# ---------------------------------------------------------------------------
+# Regions
+[street]
+# The crop ends at head height, so no road surface is visible. The bottom band
+# (shop fronts at street level, between the heads) is the best stand-in for
+# wet-ground reflections. Ramp: 0 at y_top, 1 at y_full.
+y_top = 0.935
+y_full = 0.985
+
+[people]
+# The only people in frame are the tops of heads (and one raised phone) at the
+# very bottom edge.
+shapes = [
+  [[0.385, 0.975], [0.390, 0.968], [0.398, 0.968], [0.403, 0.978], [0.404, 1.0], [0.384, 1.0]],
+  [[0.472, 0.988], [0.480, 0.981], [0.490, 0.983], [0.494, 1.0], [0.471, 1.0]],
+  [[0.300, 0.993], [0.310, 0.988], [0.321, 0.993], [0.322, 1.0], [0.299, 1.0]],
+  [[0.700, 0.975], [0.703, 0.965], [0.712, 0.962], [0.735, 0.955], [0.736, 0.970],
+   [0.715, 0.975], [0.712, 1.0], [0.700, 1.0]],
+  [[0.792, 0.990], [0.798, 0.981], [0.808, 0.978], [0.818, 0.982], [0.822, 1.0], [0.792, 1.0]],
+  [[0.848, 0.975], [0.853, 0.966], [0.862, 0.963], [0.871, 0.969], [0.874, 1.0], [0.848, 1.0]],
+]
+feather_px = 2.0

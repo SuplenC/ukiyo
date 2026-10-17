@@ -1,0 +1,14 @@
+[Unit]
+Description=ukiyo typing-rate helper socket
+Documentation=https://github.com/SuplenC/ukiyo/blob/main/docs/SECURITY.md
+
+[Socket]
+ListenStream=/run/ukiyo-activity/socket
+# Anyone may connect; the helper answers only root and the user of the
+# active seat0 session (checked per peer with SO_PEERCRED).
+SocketMode=0666
+DirectoryMode=0755
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

@@ -1,0 +1,84 @@
+# The Kabukichō gate's reactions, one after another.
+#   ukiyo-preview scenes/kabukicho-gate --script demos/kabukicho-gate.toml --record out/demo.mp4 --hud
+duration = 44
+fps = 30
+size = [1920, 1080]
+hour = 22
+
+[[at]]
+t = 0
+caption = "Idle. 22:00, raining."
+set = { "cpu.load" = 0.04, "typing.rate" = 0.0, "cursor.x" = 0.0, "cursor.y" = 0.0, "workspace.pan" = -1.0 }
+
+[[at]]
+t = 4
+ramp = 1.4
+caption = "Cursor: parallax by depth"
+set = { "cursor.x" = 1.0, "cursor.y" = -0.6 }
+
+[[at]]
+t = 5.6
+ramp = 1.6
+set = { "cursor.x" = -1.0, "cursor.y" = 0.5 }
+
+[[at]]
+t = 7.4
+ramp = 1.0
+set = { "cursor.x" = 0.15, "cursor.y" = 0.0 }
+
+[[at]]
+t = 8.6
+caption = "Workspace 1 to 5: the camera drifts"
+set = { "workspace.pan" = 0.0 }
+
+[[at]]
+t = 11
+caption = "Typing: the neon flickers harder"
+ramp = 0.3
+set = { "typing.rate" = 1.0 }
+
+[[at]]
+t = 14.5
+caption = "...and settles when you stop"
+ramp = 0.2
+set = { "typing.rate" = 0.0 }
+
+[[at]]
+t = 17
+caption = "cargo build: CPU busy, the rain gets heavy"
+ramp = 1.0
+set = { "cpu.load" = 0.97 }
+
+[[at]]
+t = 23
+caption = "Build failed"
+pulse = ["build_failed"]
+ramp = 1.5
+set = { "cpu.load" = 0.08 }
+
+[[at]]
+t = 26
+caption = "Fixed it. Build passed"
+pulse = ["build_passed"]
+
+[[at]]
+t = 29.5
+caption = "Music: the billboards pulse"
+music = 118
+
+[[at]]
+t = 34.5
+caption = "18:00, dusk"
+music = 0
+hour = 18
+
+[[at]]
+t = 37
+caption = "03:00, the dead of night"
+hour = 3
+ramp = 2.0
+
+[[at]]
+t = 40.5
+caption = "Locked: everything goes still"
+still = true
