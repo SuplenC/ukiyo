@@ -233,6 +233,11 @@ impl Engine {
         self.still
     }
 
+    /// On the way to a standstill or out of one: ticks still move it.
+    pub fn easing(&self) -> bool {
+        self.still != if self.target_still() { 1.0 } else { 0.0 }
+    }
+
     /// Frame rate cap and render scale factor (user × scene × battery).
     pub fn fps_and_scale(&self) -> (f32, f32) {
         let r = &self.scene.manifest.render;
@@ -247,8 +252,7 @@ impl Engine {
     /// Should another frame follow the last one? False once the scene is
     /// fully still, or for a non-animated scene once nothing changes.
     pub fn wants_frame(&self) -> bool {
-        let target = if self.target_still() { 1.0 } else { 0.0 };
-        if self.still != target {
+        if self.easing() {
             return true;
         }
         if self.still >= 1.0 {
@@ -475,6 +479,25 @@ night = "clock.night"
         assert!(!e.wants_frame(), "0 fps once still");
         e.set_still(false);
         assert!(e.wants_frame());
+    }
+
+    #[test]
+    fn going_still_at_four_ticks_a_second_takes_the_transition() {
+        let cfg = Config::from_layers(&[(Layer::User, "lock.transition = 1.5\n")]).unwrap();
+        let mut e = Engine::new(scene(TOML), &cfg);
+        e.tick(0.0);
+        assert!(!e.easing());
+        e.set_still(true);
+        assert!(e.easing());
+        for i in 1..=5 {
+            e.tick(f64::from(i) * 0.25);
+        }
+        assert!(e.easing(), "1.25 s in, not there yet");
+        e.tick(1.5);
+        assert_eq!(e.still(), 1.0);
+        assert!(!e.easing());
+        e.set_still(false);
+        assert!(e.easing(), "and back");
     }
 
     #[test]

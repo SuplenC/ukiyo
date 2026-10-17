@@ -9,6 +9,9 @@
 //! static scene at rest) no timer is armed and no callback requested: the
 //! daemon sleeps until an event (IPC, a compositor event, a source) wakes
 //! it. Outputs the compositor hides never call back, so they cost nothing.
+//! The one exception is easing into (or out of) a standstill with no output
+//! able to draw, like under a lock screen: the engine still has to arrive,
+//! so it ticks without drawing every `BLIND_TICK` until it has.
 
 mod gfx;
 mod ipcsrv;
@@ -62,6 +65,9 @@ const BATTERY_TICKS: u32 = 5;
 const HELPER_PROBE_TICKS: u32 = 15;
 /// How often sources are read while a static scene waits for a change.
 const STATIC_POLL: Duration = Duration::from_millis(250);
+/// Engine ticks while easing with nothing to draw on. The engine's longest
+/// step, so the ease still takes `lock.transition`.
+const BLIND_TICK: Duration = Duration::from_millis(250);
 
 /// What helper threads send to the loop.
 pub enum Msg {
@@ -210,6 +216,8 @@ pub struct State {
     handle: LoopHandle<'static, State>,
     epoch: Instant,
     timer: Option<RegistrationToken>,
+    /// The armed timer is a blind tick (see the module docs).
+    timer_blind: bool,
     last_round: Option<f64>,
     last_frame: Option<Frame>,
     /// A lock frame was asked for but nothing was drawn yet.
@@ -353,6 +361,7 @@ pub fn run(scene_arg: Option<String>) -> Result<()> {
         handle,
         epoch: Instant::now(),
         timer: None,
+        timer_blind: false,
         last_round: None,
         last_frame: None,
         still_pending: false,
@@ -479,6 +488,11 @@ impl State {
         self.reasons.is_empty() && !self.engine.target_still()
     }
 
+    /// Easing into or out of a standstill, and not paused: ticks move it.
+    fn easing(&self) -> bool {
+        self.reasons.is_empty() && self.engine.easing()
+    }
+
     fn uses(&self, group: &str) -> bool {
         self.uses.contains(group)
     }
@@ -487,7 +501,7 @@ impl State {
 
     /// Arm the frame timer if a round is due (see the module docs).
     pub fn schedule(&mut self) {
-        if self.timer.is_some() || self.exit {
+        if self.exit {
             return;
         }
         let animate = self.reasons.is_empty() && self.engine.wants_frame();
@@ -495,7 +509,16 @@ impl State {
             .outputs
             .iter()
             .any(|o| o.ready() && (o.needs_draw || (animate && !o.covered)));
+        if let Some(token) = self.timer {
+            // An output called back during a blind tick's wait: draw now.
+            if !(self.timer_blind && due) {
+                return;
+            }
+            self.handle.remove(token);
+            self.timer = None;
+        }
         let now = self.now();
+        let mut blind = false;
         let at = if due {
             let interval = if animate {
                 self.engine.frame_interval()
@@ -509,6 +532,11 @@ impl State {
         {
             // A static scene at rest: look at the sources now and then.
             now + STATIC_POLL.as_secs_f64()
+        } else if self.easing() {
+            // Nothing can draw (a lock screen hides every output, so no
+            // frame callbacks come), but the ease has to finish.
+            blind = true;
+            now + BLIND_TICK.as_secs_f64()
         } else {
             return;
         };
@@ -522,6 +550,7 @@ impl State {
                     TimeoutAction::Drop
                 });
         self.timer = token.ok();
+        self.timer_blind = blind;
     }
 
     /// One frame: read the sources, tick the engine, draw ready outputs.
@@ -538,6 +567,10 @@ impl State {
             })
             .collect();
         if targets.is_empty() {
+            // A blind tick: move the ease along without drawing it.
+            if self.easing() {
+                self.engine.tick(now);
+            }
             return;
         }
         let frame = self.engine.tick(now);
